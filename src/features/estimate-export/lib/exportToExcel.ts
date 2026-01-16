@@ -8,8 +8,6 @@ export function exportEstimateToExcel(estimate: Estimate) {
     ['СМЕТА НОВА РЕМОНТ'],
     [''],
     ['Название сметы:', estimate.name],
-    ['Дата создания:', new Date(estimate.createdAt).toLocaleDateString('ru-RU')],
-    ['Дата обновления:', new Date(estimate.updatedAt).toLocaleDateString('ru-RU')],
     [''],
     ['Позиции сметы:'],
     [''],
