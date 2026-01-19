@@ -5,13 +5,12 @@ export function exportEstimateToExcel(estimate: Estimate) {
   const workbook = XLSX.utils.book_new()
 
   const worksheetData: (string | number)[][] = [
-    ['СМЕТА НОВА РЕМОНТ'],
+    ['НоваРемонт'],
     [''],
-    ['Название сметы:', estimate.name],
+    [estimate.name],
     [''],
-    ['Позиции сметы:'],
     [''],
-    ['№', 'Услуга', 'Количество', 'Ед. изм.', 'Цена за ед.', 'Итого'],
+    ['№', 'Вид работ', 'Количество', 'Ед. изм.', 'Цена за ед.', 'Итого'],
   ]
 
   estimate.items.forEach((item, index) => {
@@ -34,6 +33,18 @@ export function exportEstimateToExcel(estimate: Estimate) {
   }
 
   const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+  // Выравниваем все ячейки влево
+Object.keys(worksheet).forEach((cellAddress) => {
+  if (cellAddress.startsWith('!')) return
+
+  const cell = worksheet[cellAddress]
+  cell.s = {
+    alignment: {
+      horizontal: 'center',
+      vertical: 'center',
+    },
+  }
+})
 
   const maxWidths = [5, 30, 12, 10, 12, 15]
   worksheet['!cols'] = maxWidths.map((w) => ({ wch: w }))
@@ -43,3 +54,4 @@ export function exportEstimateToExcel(estimate: Estimate) {
   const fileName = `${estimate.name.replace(/[^a-zа-яё0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`
   XLSX.writeFile(workbook, fileName)
 }
+
