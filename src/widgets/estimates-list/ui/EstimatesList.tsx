@@ -73,12 +73,7 @@ export function EstimatesList() {
                   Позиций: {estimate.items.length}
                 </div>
                 <div className="estimate-card__total">
-                  Итого: {formatCurrency(
-                    estimate.currency === 'USD'
-                      ? estimate.total / estimate.exchangeRate
-                      : estimate.total,
-                    estimate.currency
-                  )}
+                  Итого: {formatCurrency(estimate.total, estimate.currency)}
                 </div>
               </div>
               <div className="estimate-card__actions">

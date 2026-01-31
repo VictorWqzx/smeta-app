@@ -17,6 +17,7 @@ export function EstimateEditForm() {
   const [items, setItems] = useState<EstimateItem[]>(estimate?.items || [])
   const [currency, setCurrency] = useState<'BYN' | 'USD'>(estimate?.currency || 'BYN')
   const [exchangeRate, setExchangeRate] = useState(estimate?.exchangeRate || storage.getExchangeRate())
+  const [previousCurrency, setPreviousCurrency] = useState<'BYN' | 'USD'>(estimate?.currency || 'BYN')
 
   useEffect(() => {
     if (!estimate) {
@@ -27,12 +28,12 @@ export function EstimateEditForm() {
     setItems(estimate.items)
     setCurrency(estimate.currency)
     setExchangeRate(estimate.exchangeRate)
+    setPreviousCurrency(estimate.currency)
   }, [estimate, navigate])
 
   if (!estimate) return null
 
   const total = items.reduce((sum: number, item: EstimateItem) => sum + item.total, 0)
-  const totalInCurrency = currency === 'USD' ? total / exchangeRate : total
 
   const addItem = () => {
     const newItem: EstimateItem = {
@@ -63,6 +64,32 @@ export function EstimateEditForm() {
       })
     )
   }
+
+  // Конвертация валют при переключении
+  useEffect(() => {
+    if (currency !== previousCurrency && items.length > 0) {
+      setItems(
+        items.map((item) => {
+          let newPricePerUnit = item.pricePerUnit
+          
+          if (previousCurrency === 'BYN' && currency === 'USD') {
+            // Конвертируем из BYN в USD
+            newPricePerUnit = item.pricePerUnit / exchangeRate
+          } else if (previousCurrency === 'USD' && currency === 'BYN') {
+            // Конвертируем из USD в BYN
+            newPricePerUnit = item.pricePerUnit * exchangeRate
+          }
+          
+          return {
+            ...item,
+            pricePerUnit: newPricePerUnit,
+            total: (item.quantity || 0) * newPricePerUnit,
+          }
+        })
+      )
+    }
+    setPreviousCurrency(currency)
+  }, [currency, exchangeRate])
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -100,7 +127,11 @@ export function EstimateEditForm() {
               Валюта:
               <select
                 value={currency}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrency(e.target.value as 'BYN' | 'USD')}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  const newCurrency = e.target.value as 'BYN' | 'USD'
+                  setPreviousCurrency(currency)
+                  setCurrency(newCurrency)
+                }}
               >
                 <option value="BYN">BYN</option>
                 <option value="USD">USD</option>
@@ -161,6 +192,7 @@ export function EstimateEditForm() {
                 <EstimateItemRow
                   key={item.id}
                   item={item}
+                  currency={currency}
                   onUpdate={(updates) => updateItem(item.id, updates)}
                   onRemove={() => removeItem(item.id)}
                 />
@@ -173,8 +205,7 @@ export function EstimateEditForm() {
       <div className="estimate-form__footer">
         <div className="estimate-form__total">
           <strong>
-            Итого: {formatCurrency(totalInCurrency, currency)}
-            {currency === 'USD' && ` (${formatCurrency(total, 'BYN')})`}
+            Итого: {formatCurrency(total, currency)}
           </strong>
         </div>
         <div className="estimate-form__actions">
@@ -192,11 +223,12 @@ export function EstimateEditForm() {
 
 interface EstimateItemRowProps {
   item: EstimateItem
+  currency: 'BYN' | 'USD'
   onUpdate: (updates: Partial<EstimateItem>) => void
   onRemove: () => void
 }
 
-function EstimateItemRow({ item, onUpdate, onRemove }: EstimateItemRowProps) {
+function EstimateItemRow({ item, currency, onUpdate, onRemove }: EstimateItemRowProps) {
   const [serviceSearch, setServiceSearch] = useState(item.serviceName)
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
@@ -393,7 +425,7 @@ function EstimateItemRow({ item, onUpdate, onRemove }: EstimateItemRowProps) {
           className="input-number"
         />
       </td>
-      <td>{formatCurrency(item.total, 'BYN')}</td>
+      <td>{formatCurrency(item.total, currency)}</td>
       <td>
         <button onClick={onRemove} className="btn btn-danger btn-sm">
           ×
